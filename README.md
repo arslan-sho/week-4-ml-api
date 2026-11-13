@@ -7,19 +7,23 @@ A machine learning API that predicts area-level median housing values in Califor
 - FastAPI prediction endpoint
 - Input validation with Pydantic
 - Saved Scikit-learn model
+- Model loading during application startup
+- Health-check endpoint
 - Automated tests with pytest
-- Docker containerization
 - Interactive API documentation with Swagger UI
+- Optional Docker containerization
 
 ## Tech Stack
 
 - Python 3.12
 - FastAPI
+- Uvicorn
 - Scikit-learn
 - Pandas
 - Joblib
+- Pydantic
 - Pytest
-- Docker
+- Docker (optional)
 
 ## Project Structure
 
@@ -38,29 +42,52 @@ week-4-ml-api/
 
 ## Run Locally
 
-Activate your virtual environment and install dependencies:
+### 1. Create and activate a virtual environment
 
 ```bash
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-Start the API:
+### 2. Install dependencies
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### 3. Start the API
 
 ```bash
 uvicorn main:app --reload
 ```
 
-Open the documentation:
+The API will run locally at:
+
+http://127.0.0.1:8000
+
+### 4. Open API documentation
+
+Swagger UI:
 
 http://127.0.0.1:8000/docs
 
+### 5. Check API health
+
+Open:
+
+http://127.0.0.1:8000/health
+
+A healthy response confirms that the API is running and the trained model is loaded.
+
 ## Run Tests
+
+With the virtual environment activated, run:
 
 ```bash
 python -m pytest -v
 ```
 
-## Run with Docker
+## Run with Docker (Optional)
 
 Build the image:
 
@@ -74,16 +101,22 @@ Start the container:
 sudo docker run -d --name california-housing-api-container -p 8000:8000 california-housing-api
 ```
 
-Open:
+Open the documentation:
 
 http://127.0.0.1:8000/docs
+
+Stop the container:
+
+```bash
+sudo docker stop california-housing-api-container
+```
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/` | API welcome message |
-| GET | `/health` | Health check |
+| GET | `/health` | Health and model status |
 | POST | `/validate` | Validate housing input |
 | POST | `/predict` | Predict median housing value |
 

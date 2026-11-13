@@ -1,20 +1,29 @@
+
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import joblib
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 
-# Load the trained model once when the API starts
 MODEL_PATH = Path(__file__).parent / "models" / "best_random_forest.joblib"
-model = joblib.load(MODEL_PATH)
+
+
+# Load the model when the application starts
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.model = joblib.load(MODEL_PATH)
+    yield
+    app.state.model = None
 
 
 app = FastAPI(
     title="California Housing Prediction API",
     description="Predict California area-level median housing values.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 
@@ -38,9 +47,18 @@ def home():
 
 
 @app.get("/health")
-def health_check():
+def health_check(request: Request):
+    model_loaded = getattr(request.app.state, "model", None) is not None
+
+    if not model_loaded:
+        raise HTTPException(
+            status_code=503,
+            detail="Model is not loaded"
+        )
+
     return {
-        "status": "healthy"
+        "status": "healthy",
+        "model_loaded": True
     }
 
 
@@ -53,10 +71,17 @@ def validate_housing(data: HousingInput):
 
 
 @app.post("/predict")
-def predict_housing(data: HousingInput):
+def predict_housing(data: HousingInput, request: Request):
+    model = request.app.state.model
     input_data = pd.DataFrame([data.model_dump()])
 
-    prediction = model.predict(input_data)[0]
+    try:
+        prediction = model.predict(input_data)[0]
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Prediction failed"
+        ) from exc
 
     # The model predicts values in units of $100,000
     predicted_price = float(prediction * 100000)
